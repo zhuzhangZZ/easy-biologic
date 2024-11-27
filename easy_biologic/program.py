@@ -509,12 +509,29 @@ class BiologicProgram( ABC ):
             )
 
         self.device.start_channels( self.channels )
-
+        
         if retrieve_data:
-            asyncio.run( self._retrieve_data( read_interval ) )
+            thread = threading.Thread(
+                target=lambda: asyncio.run(self._retrieve_data(read_interval))
+            )
+            thread.start()
+            thread.join()
+    
+        if self.autoconnect:
+            self._disconnect()
+        # if retrieve_data:
+        #     loop = asyncio.get_event_loop()
+        #     if loop.is_running():
+        #         loop.create_task(self._retrieve_data( read_interval ))
+        #     else:
+        #         asyncio.run( self._retrieve_data( read_interval ) )
+        
+        # # if retrieve_data:
+        # #     asyncio.run( self._retrieve_data( read_interval ) )
+            
 
-            if self.autoconnect is True:
-                self._disconnect()
+        #     if self.autoconnect is True:
+        #         self._disconnect()
 
 
     async def _retrieve_data_segment( self, channel ):

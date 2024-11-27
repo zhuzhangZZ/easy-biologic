@@ -165,7 +165,8 @@ class BiologicDevice:
         """
         if self.idn is not None:
             raise RuntimeError( 'Device already connected.' )
-
+        print("connect to the device via the address of ")
+        print(self.address)
         ( idn, info ) = ecl.connect( self.address, self.timeout )
 
         self.__idn = idn

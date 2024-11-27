@@ -329,13 +329,13 @@ class CallBack_Timeout:
 
         # internal trackers
         self.__calls += 1
-        if self.timeout_type is 'interval':
+        if self.timeout_type == 'interval':
             self.__last_call = time.time()
 
         # callback
         cb( self.__program, *args, **kwargs )
 
-        if self.timeout_type is 'between':
+        if self.timeout_type == 'between':
             self.__last_call = time.time()
 
 
@@ -487,7 +487,111 @@ def map_hardware_params( params, by_channel = True, keep = False, inplace = Fals
     
 
 # --- Base Classes ---
+class CV( BiologicProgram ):
+    """
+    Runs a CV scan.
+    """
+    def __init__(
+        self,
+        device,
+        params,
+        **kwargs
+    ):
+        """
+        :param device: BiologicDevice.
+        :param params: Program parameters.
+            Params are
+            start: Dictionary of start voltages keyed by channels. [Defualt: 0]
+            end: Dictionary of end voltages keyed by channels.
+            step: Voltage step. [Default: 0.01]
+            rate: Scan rate in V/s. [Default: 0.05]
+            average: Average over points. [Default: False]
+        :param **kwargs: Parameters passed to BiologicProgram.
+        """
 
+        # defaults
+        defaults = {
+            'vs_initial': False,
+            'start': 0,
+            'E2': 0,
+            'Ef': 0,
+            'step':  0.001,
+            'rate':  0.05, #V/s
+            'average': False,
+            'N_Cycles': 0,
+            'Begin_measuring_I':0.5,
+            'End_measuring_I': 1
+            
+        }
+        channels = kwargs[ 'channels' ] if ( 'channels' in kwargs ) else None
+        params = set_defaults( params, defaults, channels )
+
+        super().__init__(
+            device,
+            params,
+            **kwargs
+        )
+
+        self._techniques = [ 'cv' ]
+        self._parameter_types = tfs.CV
+        self._data_fields = (
+            dp.SP300_Fields.CV
+            if ecl.is_in_SP300_family( self.device.kind ) else
+            dp.VMP3_Fields.CV
+        )
+
+        self.field_titles = [ 'Voltage', 'Current', 'Time', 'Power [W]', 'Cycle' ]
+        
+        self._fields = namedtuple( 'CV_Datum', [
+           'voltage', 'current', 'time', 'power', 'cycle'
+        ] )
+
+        self._field_values = lambda datum, segment: (
+            datum.voltage,
+            datum.current,
+            dp.calculate_time(
+                datum.t_high,
+                datum.t_low,
+                segment.info,
+                segment.values
+             ),
+             
+            datum.voltage* datum.current,  # power
+            datum.cycle
+        )
+
+    def run( self, retrieve_data = True ):
+        """
+        :param retrieve_data: Automatically retrieve and disconenct form device.
+            [Default: True]
+        """
+        # setup scan profile ( start -> end -> start )
+        params = {}
+        for ch, ch_params in self.params.items():
+            # voltage_profile = [ ch_params[ 'start' ] ]* 5
+            voltage_profile = [ 
+                ch_params[ 'start' ],
+                ch_params['E1'], 
+                ch_params['E2'], 
+                ch_params['start'], 
+                ch_params['Ef'] 
+            ]
+            # voltage_profile[ 1 ] = ch_params[ 'end' ]
+
+            params[ ch ] = {
+                'vs_initial':   [ ch_params['vs_initial'] ]* 5,
+                'Voltage_step': voltage_profile,
+                'Scan_Rate':    [ ch_params[ 'rate' ] ]* 5,
+                'Scan_number':  2,
+                'Record_every_dE':   ch_params[ 'step' ],
+                'Average_over_dE':   ch_params[ 'average' ],
+                'N_Cycles':          ch_params['N_Cycles'],
+                'Begin_measuring_I': ch_params['Begin_measuring_I'], # start measurement at beginning of interval
+                'End_measuring_I':   ch_params['End_measuring_I']  # finish measurement at end of interval
+            }
+
+        # run technique
+        data = self._run( 'cv', params, retrieve_data = retrieve_data )
 
 class OCV( BiologicProgram ):
     """
@@ -1097,10 +1201,10 @@ class PEIS( BiologicProgram ):
         """
         # set sweep to false if spacing is logarithmic
         if 'sweep' in params:
-            if params.sweep is 'log':
+            if params.sweep == 'log':
                 params.sweep = False
 
-            elif params.sweep is 'lin':
+            elif params.sweep == 'lin':
                 params.sweep = True
 
             else:
@@ -1287,10 +1391,10 @@ class GEIS( BiologicProgram ):
         """
         # set sweep to false if spacing is logarithmic
         if 'sweep' in params:
-            if params.sweep is 'log':
+            if params.sweep == 'log':
                 params.sweep = False
 
-            elif params.sweep is 'lin':
+            elif params.sweep == 'lin':
                 params.sweep = True
 
             else:
@@ -1733,7 +1837,7 @@ class MPP_Tracking( CALimit ):
                 self._hold_and_retrieve( hold_time )
             )
 
-            if len( self.active_channels ) is 0:
+            if len( self.active_channels ) == 0:
                 # program end
                 break
 
@@ -1748,7 +1852,7 @@ class MPP_Tracking( CALimit ):
                 self._hold_and_retrieve( probe_time )
             )
 
-            if len( self.active_channels ) is 0:
+            if len( self.active_channels ) == 0:
                 # program end
                 break
 

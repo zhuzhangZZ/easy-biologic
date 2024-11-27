@@ -520,8 +520,8 @@ bits = arch[ 0 ]
 bits = bits.replace( 'bit', '' )
 bits = int( bits )
 logging.debug( '[biologic_controller] Running on {}-bit platform.'.format( bits ) )
-
-bits = '' if ( bits == 32 ) else '64'
+print('[biologic_controller] Running on {}-bit platform.'.format( bits ) )
+bits = '' if ( bits == 32 ) else '4'
 dll_file = os.path.join(
     common.technique_directory(),
     'EClib{}.dll'.format( bits )

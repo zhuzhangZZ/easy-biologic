@@ -88,7 +88,7 @@ bits = bits.replace( 'bit', '' )
 bits = int( bits )
 logging.debug( '[ec_find] Running on {}-bit platform.'.format( bits ) )
 
-bits = '' if ( bits == 32 ) else '64'
+bits = '' if ( bits == 32 ) else '4'
 dll_file = os.path.join(
     common.technique_directory(),
     'blfind{}.dll'.format( bits )

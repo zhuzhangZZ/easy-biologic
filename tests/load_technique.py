@@ -8,10 +8,10 @@ from easy_biologic.lib import ec_lib as ecl #for convenience
 
 # script parameters
 
-debug = True # print debugging messages
-device_address = '192.168.1.2'
-technique_channel = 0
-technique_file = 'ocv.ecc'
+debug = False # print debugging messages
+device_address = 'USB0'
+technique_channel = 1
+technique_file = 'ocv4.ecc'
 
 technique_params = {
 	'Rest_time_T': 		0.1,
@@ -90,7 +90,10 @@ display = c.c_bool( False )
 err_code = ecl.BL_LoadTechnique(
 	idn, ch, c.byref( tech_file ), tech_params, first, last, display
 )
+ecl.BL_StartChannel(idn, ch)
 
+a = ecl.BL_GetData(idn, ch)
+print(a)
 if debug:
 	print( 'Load Technique Error Code: {}'.format( err_code ) )
 
